@@ -22,19 +22,18 @@ def home(request: Request):
 
 @app.post("/add")
 def add(url: str = Form(...)):
-    if "nike.com" in url:
-        store, title, price = scrape_nike(url)
-    elif "proteinocean" in url:
-        store, title, price = scrape_proteinocean(url)
-    else:
+    try:
+        title, price = scrape_universal(url)
+    except:
         return RedirectResponse("/", status_code=303)
 
     db = get_db()
     db.execute(
         "INSERT INTO cart (store, title, price, url) VALUES (?, ?, ?, ?)",
-        (store, title, price, url)
+        ("Any", title, price, url)
     )
     db.commit()
+
     return RedirectResponse("/", status_code=303)
 
 @app.get("/delete/{id}")
