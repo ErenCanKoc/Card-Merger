@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unified Cart</title>
+</head>
+<body>
+    <h1>Unified Cart</h1>
+
+    <form method="post" action="/add">
+        <input name="url" placeholder="Ürün linki yapıştır" size="60">
+        <button>Ekle</button>
+    </form>
+
+    <ul>
+        {% for i in items %}
+            <li>
+                {{ i[1] }} — {{ i[2] }} — {{ i[3] }} ₺
+                <a href="/delete/{{ i[0] }}">❌</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Toplam: {{ total }} ₺</h2>
+</body>
+</html>
