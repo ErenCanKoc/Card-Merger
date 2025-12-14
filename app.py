@@ -2,7 +2,6 @@ from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
-from scrapers import scrape_universal
 
 from db import get_db
 from scrapers import scrape_universal
@@ -24,7 +23,8 @@ def home(request: Request):
 def add(url: str = Form(...)):
     try:
         title, price = scrape_universal(url)
-    except:
+    except Exception as e:
+        print(e)
         return RedirectResponse("/", status_code=303)
 
     db = get_db()
