@@ -1,62 +1,55 @@
-import requests
-from bs4 import BeautifulSoup
-import json
-import re
+from urllib.parse import urlparse
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
-def scrape_universal(url):
-    r = requests.get(url, headers=HEADERS, timeout=10)
-    soup = BeautifulSoup(r.text, "html.parser")
+from db import get_db
+from scrapers import scrape_universal
 
-    # 1️⃣ JSON-LD Product
-    for script in soup.find_all("script", type="application/ld+json"):
-        try:
-            data = json.loads(script.string)
-            if isinstance(data, list):
-                data = data[0]
+app = FastAPI()
+templates = Jinja2Templates(directory=".")
 
-            if data.get("@type") == "Product":
-                title = data.get("name")
 
-                offers = data.get("offers", {})
-                if isinstance(offers, list):
-                    offers = offers[0]
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    conn = get_db()
+    items = conn.execute(
+        "SELECT id, store, title, price, url FROM cart ORDER BY id DESC"
+    ).fetchall()
+    total = sum(item[3] for item in items) if items else 0
 
-                price = offers.get("price")
-                if title and price:
-                    return title.strip(), float(price)
-        except:
-            pass
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "items": items, "total": total}
+    )
 
-image = None
 
-# JSON-LD image
-img = item.get("image")
-if isinstance(img, list) and img:
-    image = img[0]
-elif isinstance(img, str):
-    image = img
+@app.post("/add")
+def add_item(request: Request, url: str = Form(...)):
+    try:
+        title, price = scrape_universal(url)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-og_image = soup.find("meta", property="og:image")
-if og_image and og_image.get("content"):
-    image = og_image["content"]
+    store = urlparse(url).netloc
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO cart (store, title, price, url) VALUES (?, ?, ?, ?)",
+        (store, title, price, url),
+    )
+    conn.commit()
 
-    # 2️⃣ OpenGraph
-    og_title = soup.find("meta", property="og:title")
-    og_price = soup.find("meta", property="product:price:amount")
+    return RedirectResponse("/", status_code=303)
 
-    if og_title and og_price:
-        return og_title["content"], float(og_price["content"])
 
-    # 3️⃣ HTML price heuristic
-    text = soup.get_text(" ", strip=True)
-    matches = re.findall(r"(\d{1,3}(?:[\.,]\d{3})*(?:[\.,]\d{2})?)\s*(₺|TL|TRY|€|\$)", text)
+@app.get("/delete/{item_id}")
+def delete_item(item_id: int):
+    conn = get_db()
+    conn.execute("DELETE FROM cart WHERE id = ?", (item_id,))
+    conn.commit()
+    return RedirectResponse("/", status_code=303)
 
-    if matches:
-        raw_price = matches[0][0]
-        price = raw_price.replace(".", "").replace(",", ".")
-        title = soup.title.text if soup.title else "Unknown product"
-        return title.strip(), float(price)
 
-    raise Exception("Ürün adı / fiyat bulunamadı")
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
