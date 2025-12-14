@@ -1,4 +1,4 @@
-print(">>> THIS IS THE NEW APP.PY <<<")
+print(">>> THIS IS THE CORRECT app.py <<<")
 
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -23,11 +23,7 @@ def home(request: Request):
 
 @app.post("/add")
 def add(url: str = Form(...)):
-    try:
-        title, price = scrape_universal(url)
-    except Exception as e:
-        print(e)
-        return RedirectResponse("/", status_code=303)
+    title, price = scrape_universal(url)
 
     db = get_db()
     db.execute(
@@ -36,11 +32,4 @@ def add(url: str = Form(...)):
     )
     db.commit()
 
-    return RedirectResponse("/", status_code=303)
-
-@app.get("/delete/{id}")
-def delete(id: int):
-    db = get_db()
-    db.execute("DELETE FROM cart WHERE id = ?", (id,))
-    db.commit()
     return RedirectResponse("/", status_code=303)
