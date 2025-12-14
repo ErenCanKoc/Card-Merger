@@ -1,35 +1,62 @@
-print(">>> THIS IS THE CORRECT app.py <<<")
+import requests
+from bs4 import BeautifulSoup
+import json
+import re
 
-from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from starlette.requests import Request
+HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-from db import get_db
-from scrapers import scrape_universal
+def scrape_universal(url):
+    r = requests.get(url, headers=HEADERS, timeout=10)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+    # 1️⃣ JSON-LD Product
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.string)
+            if isinstance(data, list):
+                data = data[0]
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    db = get_db()
-    items = db.execute("SELECT * FROM cart").fetchall()
-    total = sum([i[3] for i in items])
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "items": items, "total": total}
-    )
+            if data.get("@type") == "Product":
+                title = data.get("name")
 
-@app.post("/add")
-def add(url: str = Form(...)):
-    title, price = scrape_universal(url)
+                offers = data.get("offers", {})
+                if isinstance(offers, list):
+                    offers = offers[0]
 
-    db = get_db()
-    db.execute(
-        "INSERT INTO cart (store, title, price, url) VALUES (?, ?, ?, ?)",
-        ("Any", title, price, url)
-    )
-    db.commit()
+                price = offers.get("price")
+                if title and price:
+                    return title.strip(), float(price)
+        except:
+            pass
 
-    return RedirectResponse("/", status_code=303)
+image = None
+
+# JSON-LD image
+img = item.get("image")
+if isinstance(img, list) and img:
+    image = img[0]
+elif isinstance(img, str):
+    image = img
+
+og_image = soup.find("meta", property="og:image")
+if og_image and og_image.get("content"):
+    image = og_image["content"]
+
+    # 2️⃣ OpenGraph
+    og_title = soup.find("meta", property="og:title")
+    og_price = soup.find("meta", property="product:price:amount")
+
+    if og_title and og_price:
+        return og_title["content"], float(og_price["content"])
+
+    # 3️⃣ HTML price heuristic
+    text = soup.get_text(" ", strip=True)
+    matches = re.findall(r"(\d{1,3}(?:[\.,]\d{3})*(?:[\.,]\d{2})?)\s*(₺|TL|TRY|€|\$)", text)
+
+    if matches:
+        raw_price = matches[0][0]
+        price = raw_price.replace(".", "").replace(",", ".")
+        title = soup.title.text if soup.title else "Unknown product"
+        return title.strip(), float(price)
+
+    raise Exception("Ürün adı / fiyat bulunamadı")
