@@ -1,3 +1,5 @@
+print(">>> THIS IS THE NEW APP.PY <<<")
+
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
