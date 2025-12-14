@@ -5,7 +5,7 @@ from starlette.requests import Request
 from scrapers import scrape_universal
 
 from db import get_db
-from scrapers import scrape_nike, scrape_proteinocean
+from scrapers import scrape_universal
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
