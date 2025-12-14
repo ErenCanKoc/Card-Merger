@@ -29,6 +29,19 @@ def scrape_universal(url):
         except:
             pass
 
+image = None
+
+# JSON-LD image
+img = item.get("image")
+if isinstance(img, list) and img:
+    image = img[0]
+elif isinstance(img, str):
+    image = img
+
+og_image = soup.find("meta", property="og:image")
+if og_image and og_image.get("content"):
+    image = og_image["content"]
+
     # 2️⃣ OpenGraph
     og_title = soup.find("meta", property="og:title")
     og_price = soup.find("meta", property="product:price:amount")
