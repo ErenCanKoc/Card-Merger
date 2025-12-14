@@ -1,25 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-    <title>Unified Cart</title>
-</head>
-<body>
-    <h1>Unified Cart</h1>
+    <meta charset="UTF-8" />
+    <title>Card Merger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <form method="post" action="/add">
-        <input name="url" placeholder="Ürün linki yapıştır" size="60">
+    <style>
+        :root {
+            --blue: #2563eb;
+            --blue-light: #e8f0ff;
+            --gray: #6b7280;
+            --bg: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: #111827;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--blue);
+        }
+
+        header p {
+            margin-top: 6px;
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        main {
+            max-width: 720px;
+            margin: 32px auto 120px;
+            padding: 0 16px;
+        }
+
+        .add-box {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .add-box input {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            font-size: 15px;
+        }
+
+        .add-box button {
+            background: var(--blue);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .add-box button:hover {
+            opacity: 0.9;
+        }
+
+        .cart-item {
+            background: white;
+            border-radius: 14px;
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+        }
+
+        .cart-item h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .price {
+            font-weight: 600;
+            color: var(--blue);
+            margin-top: 6px;
+        }
+
+        .delete {
+            color: #ef4444;
+            text-decoration: none;
+            font-size: 20px;
+            opacity: 0.6;
+        }
+
+        .delete:hover {
+            opacity: 1;
+        }
+
+        .total-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 16px;
+        }
+
+        .total-inner {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--gray);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🛒 Card Merger</h1>
+    <p>Tüm sepetlerin tek yerde</p>
+</header>
+
+<main>
+    <form method="post" action="/add" class="add-box">
+        <input
+            name="url"
+            placeholder="Ürün linkini yapıştır ve Enter'a bas"
+            required
+        />
         <button>Ekle</button>
     </form>
 
-    <ul>
+    {% if items %}
         {% for i in items %}
-            <li>
-                {{ i[1] }} — {{ i[2] }} — {{ i[3] }} ₺
-                <a href="/delete/{{ i[0] }}">❌</a>
-            </li>
+            <div class="cart-item">
+                <div>
+                    <h3>{{ i[2] }}</h3>
+                    <div class="price">₺{{ "%.2f"|format(i[3]) }}</div>
+                </div>
+                <a class="delete" href="/delete/{{ i[0] }}">✕</a>
+            </div>
         {% endfor %}
-    </ul>
+    {% else %}
+        <div class="empty">
+            Sepetin boş 👀<br>
+            Bir ürün linki yapıştırarak başla.
+        </div>
+    {% endif %}
+</main>
 
-    <h2>Toplam: {{ total }} ₺</h2>
+<div class="total-bar">
+    <div class="total-inner">
+        <span>Toplam</span>
+        <span>₺{{ "%.2f"|format(total) }}</span>
+    </div>
+</div>
+
 </body>
 </html>
